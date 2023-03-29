@@ -1,8 +1,13 @@
 # Implementasi program Nonogram Solver dengan Pendekatan Heuristik
-# 0. Impor modul eksternal untuk membantu pemrosesan
+# xx. Impor modul eksternal untuk membantu pemrosesan
 from itertools import combinations
 import numpy as np 
+import csv
 
+# 0. Deklarasi variabel global
+ROWS_VALUES = []
+COLS_VALUES = []
+    
 # 1. Melakukan pencarian semua kemungkinan penyusunan yang mungkin terhadap konfigurasi tertentu
 def arrangements(n_empty, groups, ones):
     # Menampung semua nilai kemungkinan penyusunan
@@ -198,14 +203,58 @@ def check_solved(rows_done, cols_done):
     if (0 not in rows_done) and (0 not in cols_done):
         return True
 
+# 10. Melakukan pembacaan data masukan nonogram dari file
+def read_file():
+    global ROWS_VALUES, COLS_VALUES
+    valid = False
+    while (not valid):
+        print("=============   PEMILIHAN FILE   =============")
+        folder = input("Masukkan nama file yang akan dianalisis\n>> ")
+        print("\n=============   PEMBACAAN DATA   =============")
+        print("Sedang membaca data...")
+        try:
+            f = open(folder, "r")
+        except:
+            print("File tidak ditemukan!\n")
+            exit()
+        
+        n_row = int(input("Masukkan jumlah baris : "))
+        n_col = int(input("Masukkan jumlah kolom : "))
+        
+        data_baris = csv.reader(f)
+        count = 0
+        for row in data_baris:
+            if (count < n_row):
+                for i in range(len(row)):
+                    row[i] = float(row[i])
+                    if row[i] % 1.0 == 0:
+                        row[i] = int(row[i])
+                ROWS_VALUES.append(row)
+                count += 1
+            else :
+                for i in range(len(row)):
+                    row[i] = float(row[i])
+                    if row[i] % 1.0 == 0:
+                        row[i] = int(row[i])
+                COLS_VALUES.append(row)
+                count += 1
+        
+        if (count - n_col != n_row):
+            print("\nMasukan file tidak tepat, ulangi!\n")
+            valid = False
+            ROWS_VALUES = []
+            COLS_VALUES = []
+        else :
+            print("Proses pembacaan selesai dilakukan")
+            valid = True
+
 # 11. Program Utama
 if __name__ == '__main__':
-    # 1. Row instantiating
-    ROWS_VALUES = [[5], 
-                [1,1], 
-                [1,1], 
-                [1,1], 
-                [1,2]]
+    # 1. Melakukan pembacaan dari file
+    read_file()
+    print("\nPemrosesan sedang dilakukan...")
+
+    # 2.1. Instansiasi awal pemrosesan baris
     rows = len(ROWS_VALUES)
     rows_changed = [0] * rows
     rows_done = [0] * rows
@@ -214,18 +263,13 @@ if __name__ == '__main__':
         if (max_len_rows < len(ROWS_VALUES[i])):
             max_len_rows = len(ROWS_VALUES[i])
 
-    # initiate a matrix
+    # 2.2. Inisiasi matriks baris
     matr_rows_out = [[0 for i in range (max_len_rows + 1)] for j in range (rows)]
     for i in range (rows):
         for j in range (len(ROWS_VALUES[i])):
             matr_rows_out[i][j] = ROWS_VALUES[i][j]
 
-    # 2. Column instantiating
-    COLS_VALUES = [[1], 
-                [5], 
-                [1], 
-                [5], 
-                [1,1]]
+    # 3.1. Instansiasi awal pemrosesan kolom
     cols = len(COLS_VALUES)
     cols_changed = [0] * cols
     cols_done = [0] * cols
@@ -234,46 +278,71 @@ if __name__ == '__main__':
         if (max_len_cols < len(COLS_VALUES[i])):
             max_len_cols = len(COLS_VALUES[i])
 
-    # initiate a matrix
+    # 3.2. Instansiasi matriks kolom
     matr_cols_out = [[0 for i in range (cols)] for j in range (max_len_cols + 1)]
     for i in range (cols):
         for j in range (len(COLS_VALUES[i])):
             matr_cols_out[j][i] = COLS_VALUES[i][j]
             
-    # 3. Inisiation of Nanogram scheme processing
+    # 4. Instansiasi papan pemrosesan nonogram
     solved = False 
     shape = (rows, cols)
     board = [[0 for c in range(cols)] for r in range(rows)]
 
-    # step 1: Defining all possible solutions for every row and col
+    # 5. Mendefinisikan semua kemungkinan solusi menggunakan fungsi create_possibilities
     rows_possibilities = create_possibilities(ROWS_VALUES, cols)
     cols_possibilities = create_possibilities(COLS_VALUES, rows)
 
-    # print(cols_possibilities)
-
+    # 6. Melakukan pemrosesan selama belum berakhir
     while not solved:
-        # step 2: Order indici by lowest 
+        # Melakukan pemrosesan terhadap indeks dari baris dan kolom yang belum selesai 
         lowest_rows = select_index_not_done(rows_done, cols_done, rows_possibilities, 1)
         lowest_cols = select_index_not_done(rows_done, cols_done, cols_possibilities, 0)
+        # Pemrosesan dilakukan bagi nilai baris atau kolom yang memiliki kemungkinan paling sedikit
         lowest = sorted(lowest_rows + lowest_cols, key=lambda element: element[1])
 
-        # step 3: Get only zeroes or only ones of lowest possibility 
+        # Melakukan pemrosesan terhadap baris/kolom yang telah diurutkan pada langkah sebelumnya
         for ind1, _, row_ind in lowest:
+            # Melakukan pengecekan apakah sudah diselesaikan atau belum
             if not check_done(rows_done, cols_done, row_ind, ind1):
-                if row_ind: values = rows_possibilities[ind1]
-                else: values = cols_possibilities[ind1]
+                # Pemrosesan berdasarkan flag
+                # Jika merupakan baris, ambil nilai baris pada indeks tersebut
+                if row_ind: 
+                    values = rows_possibilities[ind1]
+                # Jika merupakan kolom, ambil nilai kolom pada indeks tersebut
+                else: 
+                    values = cols_possibilities[ind1]
+                
+                # mengambil semua baris/kolom yang berkoresponden
                 same_ind = get_only_one_option(values)
+                
+                # melakukan pemetaan terhadap baris dan kolom terkait
                 for ind2, val in same_ind:
-                    if row_ind: ri, ci = ind1, ind2
-                    else: ri, ci = ind2, ind1 
+                    if row_ind: 
+                        ri = ind1
+                        ci = ind2
+                    else: 
+                        ri = ind2
+                        ci = ind1
+                    
+                    # Jika isi papan masih 0
                     if board[ri][ci] == 0:
+                        # Ganti dengan nilai val
                         board[ri][ci] = val
-                        if row_ind: cols_possibilities[ci] = remove_possibilities(cols_possibilities[ci], ri, val)
-                        else: rows_possibilities[ri] = remove_possibilities(rows_possibilities[ri], ci, val)
-                        # print("Update")
-                        # display_board(board, rows, max_len_rows, matr_rows_out, cols, max_len_cols, matr_cols_out)
+                        # Lalu perbaharui nilai kemungkinan setelah kemungkinan dari indkes
+                        # terkait diselesaikan, sehingga bisa dicabut
+                        if row_ind: 
+                            cols_possibilities[ci] = remove_possibilities(cols_possibilities[ci], ri, val)
+                        else: 
+                            rows_possibilities[ri] = remove_possibilities(rows_possibilities[ri], ci, val)
+                
+                # Lakukan pengecekan kembali apakah pemrosesan sudah selesai dilaksanakan pada
+                # baris atau kolom terkait
                 update_done(board, rows_done, cols_done, row_ind, ind1)
+        
+        # Melakukan pembaharuan nilai "solved" untuk eksekusi kalang while pada bagian atas
         solved = check_solved(rows_done, cols_done)
 
-    print("Final")
+    # Menampilakn hasil akhir dari papan setelah pemrosesan
+    print("\n============   HASIL PEMROSESAN   ============\n")
     display_board(board, rows, max_len_rows, matr_rows_out, cols, max_len_cols, matr_cols_out)
