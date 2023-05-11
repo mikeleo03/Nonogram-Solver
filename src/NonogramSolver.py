@@ -3,6 +3,7 @@
 from itertools import combinations
 import numpy as np 
 import csv
+import time
 
 # 0. Deklarasi variabel global
 ROWS_VALUES = []
@@ -111,7 +112,7 @@ def get_only_one_option(values):
         if len(np.unique(i)) == 1:
             index.append((n, np.unique(i)[0]))
     
-    # Mengembalikan ....
+    # Mengembalikan solusi tunggal yang mungkin menyelesaikan
     return index
 
 # 5. Menghapus kemungkinan jika baris atau kolom terakit sudah masuk dalam papan
@@ -164,10 +165,10 @@ def display_board(board, rows, max_len_rows, matr_rows_out, cols, max_len_cols, 
         for j in range (cols):
             # Jika isi papan "-1", maka cetak petak kosong
             if (board[i][j] == -1) :
-                print("□", end = " ")
+                print(" ", end = " ")
             # Jika isinya "1", maka cetak petak isi
             elif (board[i][j] == 1):
-                print("■", end = " ")
+                print("█", end = "█")
             # Jika isinya "0" belum diselesaikan, isi dengan titik
             else :
                 print(".", end = " ")
@@ -294,6 +295,7 @@ if __name__ == '__main__':
     cols_possibilities = create_possibilities(COLS_VALUES, rows)
 
     # 6. Melakukan pemrosesan selama belum berakhir
+    start = time.time()
     while not solved:
         # Melakukan pemrosesan terhadap indeks dari baris dan kolom yang belum selesai 
         lowest_rows = select_index_not_done(rows_done, cols_done, rows_possibilities, 1)
@@ -342,7 +344,9 @@ if __name__ == '__main__':
         
         # Melakukan pembaharuan nilai "solved" untuk eksekusi kalang while pada bagian atas
         solved = check_solved(rows_done, cols_done)
+    finish = time.time()
 
     # Menampilakn hasil akhir dari papan setelah pemrosesan
     print("\n============   HASIL PEMROSESAN   ============\n")
     display_board(board, rows, max_len_rows, matr_rows_out, cols, max_len_cols, matr_cols_out)
+    print("Execution time :", finish - start, "second(s)\n")
